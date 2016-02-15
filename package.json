@@ -1,0 +1,19 @@
+{
+  "name": "event-router",
+  "version": "1.0.0",
+  "description": "A simple javascript event router",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thurt/event-router.git"
+  },
+  "author": "thurt",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/thurt/event-router/issues"
+  },
+  "homepage": "https://github.com/thurt/event-router#readme"
+}
