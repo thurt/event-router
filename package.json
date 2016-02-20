@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/thurt/event-router/issues"
   },
-  "homepage": "https://github.com/thurt/event-router#readme"
+  "homepage": "https://github.com/thurt/event-router#readme",
+  "dependencies": {
+    "copy-object-graph": "git+https://git@github.com/thurt/copy-object-graph.git"
+  }
 }
