@@ -2,38 +2,52 @@
 const copyObjectGraph = require('copy-object-graph')
 const myName = 'EventRouter'
 
-function EventRouter() {
-  const subscribers = Object.create(null)
+function EventRouter(shouldLogCalls) {
+  const events = Object.create(null)
 
-  // public interface
-  return {
-    getSubscribers() {
-      return copyObjectGraph(subscribers)
+  var public_interface = {
+    getEvents() {
+      return copyObjectGraph(events)
     },
 
     add(type, key, callback) {
-      console.info(myName, 'add', type, key)
-      _add(type, key, callback, subscribers)
+      return _add(type, key, callback, events)
     },
 
     remove(type, key, callback) {
-      console.info(myName, 'remove', type, key)
-      _remove(type, key, callback, subscribers)
+      return _remove(type, key, callback, events)
     },
 
-    send(type, key, data) {
-      console.info(myName, 'send', type, key)
-      _send(type, key, data, subscribers)
+    emit(type, key, data) {
+      return _emit(type, key, data, events)
     },
 
     purge(type) {
-      console.info(myName, 'purge', type)
-      _purge(type, subscribers)
+      return _purge(type, events)
     }
   }
+
+  if (shouldLogCalls) { // add logging proxy
+    for (let method_name in public_interface) {
+      public_interface[method_name] = closure(method_name, public_interface[method_name])
+    }
+    console.info(myName, 'is logging calls')
+  }
+  function closure(method_name, method) {
+    return function(...args) {
+      log.call(null, method_name, args)
+      return method.apply(null, args)
+    }
+  }
+  function log(method_name, args) {
+    args.length = 2 // truncate to 2 so callback is not included
+    console.info(myName, method_name, args.join(' '))
+  }
+
+  return Object.freeze(public_interface)
 }
 
-module.exports = EventRouter()
+module.exports = EventRouter
 /////////////////////////////////////////////////////
 /*
   t = type
@@ -43,32 +57,60 @@ module.exports = EventRouter()
   cb = callback
 */
 function _purge(t, o) {
-  if (!o[t]) return console.warn(myName, 'event type', t, 'cannot be purged because it does not exist')
+  if (!o[t]) {
+    console.warn(myName, 'event type', t, 'cannot be purged because it does not exist')
+    return false
+  }
   delete o[t]
+  
+  return true
 }
-function _send(t, k, d, o) {
+function _emit(t, k, d, o) {
   var ot = o[t]
-  if (!ot) return console.warn(myName, 'event type', t, k, 'was just fired but there are no registered callbacks')
+  if (ot === undefined) {
+    console.warn(myName, 'event type', t, k, 'was just fired but there are no registered callbacks')
+    return false
+  }
   var otk = ot[k]
-  if (!otk) return console.warn(myName, 'event type', t, k, 'was just fired but there are no registered callbacks')
+  if (otk === undefined) {
+    console.warn(myName, 'event type', t, k, 'was just fired but there are no registered callbacks')
+    return false
+  }
 
   for (let cb of otk) cb(d)
+  
+  return true
 }
 function _add(t, k, cb, o) {
   var ot = o[t]
-  if (!ot) ot = o[t] = {}
+  if (ot === undefined) ot = o[t] = {}
 
   var otk = ot[k]
-  if (!otk) otk = ot[k] = []
+  if (otk === undefined) otk = ot[k] = []
 
-  if (!otk.includes(cb)) otk.push(cb)
+  if (otk.includes(cb)) {
+    console.warn(myName, 'event type', t, k, 'already has this callback function')
+    return false
+  }
+  else otk.push(cb)
+  
+  return true
 }
 function _remove(t, k, cb, o) {
   var ot = o[t]
-  if (!ot) return console.warn(myName, 'cannot find type', t)
+  if (ot === undefined) {
+    console.warn(myName, 'cannot find type', t)
+    return false
+  }
   var otk = ot[k]
-  if (!otk) return console.warn(myName, 'cannot find key', k, 'in type', t)
-  if (!otk.includes(cb)) return console.warn(myName, 'cannot find callback', cb, 'in key', k, 'in type', t)
+  if (otk === undefined) {
+    console.warn(myName, 'cannot find key', k, 'in type', t)
+    return false
+  }
+  if (!otk.includes(cb)) {
+    console.warn(myName, 'cannot find this callback function under key', k, 'in type', t)
+    return false
+  }
 
   otk.splice(otk.indexOf(cb), 1)
 
@@ -76,4 +118,6 @@ function _remove(t, k, cb, o) {
     delete ot[k]
     if (!Object.keys(ot).length) delete o[t]
   }
+  
+  return true
 }
