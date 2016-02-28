@@ -57,13 +57,7 @@ module.exports = EventRouter
   cb = callback
 */
 function _purge(t, o) {
-  if (!o[t]) {
-    console.warn(myName, 'event type', t, 'cannot be purged because it does not exist')
-    return false
-  }
   delete o[t]
-  
-  return true
 }
 function _emit(t, k, d, o) {
   var ot = o[t]
@@ -78,7 +72,7 @@ function _emit(t, k, d, o) {
   }
 
   for (let cb of otk) cb(d)
-  
+
   return true
 }
 function _add(t, k, cb, o) {
@@ -93,7 +87,7 @@ function _add(t, k, cb, o) {
     return false
   }
   else otk.push(cb)
-  
+
   return true
 }
 function _remove(t, k, cb, o) {
@@ -118,6 +112,6 @@ function _remove(t, k, cb, o) {
     delete ot[k]
     if (!Object.keys(ot).length) delete o[t]
   }
-  
+
   return true
 }
