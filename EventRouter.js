@@ -35,13 +35,9 @@ function EventRouter(shouldLogCalls) {
   }
   function closure(method_name, method) {
     return function(...args) {
-      log.call(null, method_name, args)
+      console.info(myName, method_name, args[0], args[1])
       return method.apply(null, args)
     }
-  }
-  function log(method_name, args) {
-    args.length = 2 // truncate to 2 so callback is not included
-    console.info(myName, method_name, args.join(' '))
   }
 
   return Object.freeze(public_interface)

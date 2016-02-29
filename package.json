@@ -1,8 +1,8 @@
 {
   "name": "event-router",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A simple javascript event router",
-  "main": "index.js",
+  "main": "EventRouter.js",
   "scripts": {
     "test": "mocha --harmony",
     "documentation": "cp preface.md README.md && mocha -R markdown --harmony >> README.md"
