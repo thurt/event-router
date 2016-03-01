@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/thurt/event-router#readme",
   "dependencies": {
-    "copy-object-graph": "git+https://git@github.com/thurt/copy-object-graph.git"
+    "copy-object-graph": "git+https://git@github.com/thurt/copy-object-graph.git#v1.0.1"
   },
   "devDependencies": {
     "mocha": "^2.4.5"
