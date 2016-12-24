@@ -1,14 +1,14 @@
-// just to supress IDE ref warnings
-/* global myRouter, cache, consoleVal */
 'use strict'
-var assert = require('assert')
-var EventRouter = require('event-router')
-var emptyFn = function() {}
+const assert = require('assert')
+const EventRouter = require('../EventRouter')
+const emptyFn = function() {}
+let myRouter
 
 context('Instantiate', () => {
+  let consoleVal = null
+  let cache = console.info
+
   before('hijack console.info', () => {
-    global.cache = console.info
-    global.consoleVal = null
     console.info = function(...args) {
       consoleVal = args.join(' ')
     }
@@ -17,12 +17,11 @@ context('Instantiate', () => {
     consoleVal = null
   })
   after('restore console.info', () => {
-    console.info = global.cache
+    console.info = cache
   })
 
   it('will log calls to console.info when instantiated with truthy value', () => {
-    var EventRouter = require('event-router')
-    var myRouter = EventRouter(true)
+    myRouter = EventRouter(true)
     assert.strictEqual(consoleVal, 'EventRouter is logging calls')
 
     myRouter.add('test', 'key', emptyFn)
@@ -30,8 +29,7 @@ context('Instantiate', () => {
   })
 
   it('will NOT log calls to console.info when instantiated with falsey value', () => {
-    var EventRouter = require('event-router')
-    var myRouter = EventRouter(false)
+    myRouter = EventRouter(false)
     assert.strictEqual(consoleVal, null, 'consoleVal in null after instantiating')
 
     myRouter.add('test', 'key', emptyFn)
@@ -41,12 +39,14 @@ context('Instantiate', () => {
 
 context('Interface', () => {
   describe('.getEvents()', () => {
+    let myRouter
+
     before(() => {
-      global.myRouter = EventRouter()
+      myRouter = EventRouter()
     })
 
     it('returns a deep copy of the internal events object (callback functions are not copied!)', () => {
-      var events = myRouter.getEvents()
+      const events = myRouter.getEvents()
       assert.strictEqual(typeof events, 'object', 'events() returns an object')
       assert.deepStrictEqual(events, {}, 'the events object is initially empty')
 
@@ -56,7 +56,7 @@ context('Interface', () => {
         myRouter.add(i, 'test', emptyFn)
       }
 
-      var events2 = myRouter.getEvents()
+      const events2 = myRouter.getEvents()
       assert.notDeepStrictEqual(events, events2, 'the events object has changed after adding events')
       assert.deepStrictEqual(events2, {
         test: {
@@ -79,7 +79,7 @@ context('Interface', () => {
 
   describe('.add(type, key, callback)', () => {
     before(() => {
-      global.myRouter = EventRouter()
+      myRouter = EventRouter()
     })
 
     it('adds an event listener to the router and returns true', () => {
@@ -95,7 +95,7 @@ context('Interface', () => {
 
   describe('.remove(type, key, callback)', () => {
     before(() => {
-      global.myRouter = EventRouter()
+      myRouter = EventRouter()
     })
 
     it('removes an event listener from the router and returns true', () => {
@@ -112,7 +112,7 @@ context('Interface', () => {
     })
 
     it('invokes callbacks that are registered to this type and key and passes data as first parameter, and returns true', () => {
-      var outer_scope
+      let outer_scope
       function simple_example(data) {
         outer_scope = data
       }
@@ -126,7 +126,7 @@ context('Interface', () => {
 
   describe('.purge(type)', () => {
     before(() => {
-      global.myRouter = require('../index')()
+      myRouter = EventRouter()
     })
 
     it('removes all event references stored for this type', () => {
@@ -156,20 +156,20 @@ context('Interface', () => {
 })
 
 context('Warning Cases', () => {
+  let consoleVal = null
+  let cache = console.warn
+
   before('hijack console.warn', () => {
-    global.cache = console.warn
-    global.consoleVal = null
     console.warn = function(...args) {
       consoleVal = args.join(' ')
     }
   })
   beforeEach('re-instantiate EventRouter', () => {
-    global.myRouter = require('../index')()
+    myRouter = EventRouter()
   })
   after('restore console.warn', () => {
     console.warn = cache
-    cache = null
-    consoleVal = null
+    consoleVal = cache = null
   })
 
   it('returns false and logs a warning when attempting to #add the same callback function twice for the same type and key', () => {
