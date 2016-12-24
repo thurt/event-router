@@ -14,105 +14,105 @@ class EventRouter {
     Events.set(this, Object.create(null)) // prevent adding Object.prototype
   }
 
-  add(t: string, k: string, cb: Function): boolean {
+  add(model: string, action: string, cb: Function): boolean {
     const o = Events.get(this)
 
     if (o == null) {
       return false
     }
 
-    if (o[t] == null) {
-      o[t] = Object.create(null)
+    if (o[model] == null) {
+      o[model] = Object.create(null)
     }
-    const ot = o[t]
+    const om = o[model]
 
-    if (ot[k]== null) {
-      ot[k] = []
+    if (om[action]== null) {
+      om[action] = []
     }
-    const otk = ot[k]
+    const oma = om[action]
 
-    if (otk.includes(cb)) {
-      this.log(this.name, 'event type', t, k, 'already has this callback function')
+    if (oma.includes(cb)) {
+      this.log(this.name, 'this callback is already subscribed to action', action, 'on model', model)
       return false
     }
 
-    this.log(this.name, 'add', t, k)
-    otk.push(cb)
+    this.log(this.name, 'subscribing callback to action', action, 'on model', model)
+    oma.push(cb)
     return true
   }
 
-  emit(t: string, k: string, data: any): boolean {
+  emit(model: string, action: string, data: any): boolean {
     const o = Events.get(this)
 
     if (o == null) {
       return false
     }
 
-    if (o[t] == null) {
-      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+    if (o[model] == null) {
+      this.log(this.name, 'received request to emit action', action, 'on an unknown model', model)
       return false
     }
-    const ot = o[t]
+    const om = o[model]
 
-    if (ot[k] == null) {
-      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+    if (om[action] == null) {
+      this.log(this.name, 'received request to emit action', action, 'on model', model, 'but there are no subscribers')
       return false
     }
-    const otk = ot[k]
+    const oma = om[action]
 
-    for (let cb of otk) cb(data)
+    for (let cb of oma) cb(data)
 
     return true
   }
 
   getEvents(): Object {
-    return copyObjectGraph(Events.get(this))
+    return copyObjectGraph(Events.get(this) || {})
   }
 
-  purge(t: string): boolean {
+  purge(model: string): boolean {
     const o = Events.get(this)
 
     if (o == null) {
       return false
     }
 
-    if (o[t] == null) {
+    if (o[model] == null) {
       return false
     }
 
-    delete o[t]
+    delete o[model]
     return true
   }
 
-  remove(t: string, k: string, cb: Function): boolean {
+  remove(model: string, action: string, cb: Function): boolean {
     const o = Events.get(this)
 
     if (o == null) {
       return false
     }
 
-    if (o[t] == null) {
-      this.log(this.name, 'cannot find type', t)
+    if (o[model] == null) {
+      this.log(this.name, 'cannot remove unknown model', model)
       return false
     }
-    const ot = o[t]
+    const om = o[model]
 
-    if (ot[k] == null) {
-      this.log(this.name, 'cannot find key', k, 'in type', t)
+    if (om[action] == null) {
+      this.log(this.name, 'cannot remove unknown action', action, 'on model', model)
       return false
     }
-    const otk = ot[k]
+    const oma = om[action]
 
-    if (!otk.includes(cb)) {
-      this.log(this.name, 'cannot find this callback function under key', k, 'in type', t)
+    if (!oma.includes(cb)) {
+      this.log(this.name, 'cannot remove unknown callback for action', action, 'on model', model)
       return false
     }
 
-    otk.splice(otk.indexOf(cb), 1)
+    oma.splice(oma.indexOf(cb), 1)
 
-    if (!otk.length) {
-      delete ot[k]
-      if (!Object.keys(ot).length) delete o[t]
+    if (!oma.length) {
+      delete om[action]
+      if (!Object.keys(om).length) delete o[model]
     }
 
     return true
