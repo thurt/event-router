@@ -5,7 +5,8 @@
   "main": "EventRouter.js",
   "scripts": {
     "test": "mocha --harmony",
-    "documentation": "cp preface.md README.md && mocha -R markdown --harmony >> README.md"
+    "documentation": "cp preface.md README.md && mocha -R markdown --harmony >> README.md",
+    "flow": "flow; test $? -eq 0 -o $? -eq 2"
   },
   "repository": {
     "type": "git",
@@ -21,6 +22,7 @@
     "copy-object-graph": "git+https://git@github.com/thurt/copy-object-graph.git#v1.0.1"
   },
   "devDependencies": {
+    "flow-bin": "^0.37.4",
     "mocha": "^2.4.5",
     "sinon": "^1.17.6"
   }

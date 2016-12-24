@@ -1,50 +1,66 @@
+// @flow
 'use strict'
 const copyObjectGraph = require('copy-object-graph')
-
-const Events = new WeakMap()
+const Events: WeakMap<EventRouter, Object> = new WeakMap()
 
 class EventRouter {
-  constructor(options) {
+  name: string
+  log: Function
+  constructor(options: { name?: string, log?: Function }) {
+    const emptyFn = function() {}
     this.name = (options && options.name) || 'EventRouter'
-    this.log = (options && options.log) || () => {}
+    this.log = (options && options.log) || emptyFn
 
     Events.set(this, Object.create(null)) // prevent adding Object.prototype
   }
 
-  add(t, k, cb) {
+  add(t: string, k: string, cb: Function) {
     const o = Events.get(this)
 
-    let ot = o[t]
-    if (ot === undefined) ot = o[t] = Object.create(null)
+    if (o == null) {
+      return false
+    }
 
-    let otk = ot[k]
-    if (otk === undefined) otk = ot[k] = []
+    if (o[t] == null) {
+      o[t] = Object.create(null)
+    }
+    const ot = o[t]
+
+    if (ot[k]== null) {
+      ot[k] = []
+    }
+    const otk = ot[k]
 
     if (otk.includes(cb)) {
       this.log(this.name, 'event type', t, k, 'already has this callback function')
       return false
-    } else {
-      this.log(this.name, 'add', t, k)
-      otk.push(cb)
-      return true
     }
+
+    this.log(this.name, 'add', t, k)
+    otk.push(cb)
+    return true
   }
 
-  emit(t, k, d) {
-    const ot = Events.get(this)[t]
+  emit(t: string, k: string, data: any) {
+    const o = Events.get(this)
 
-    if (ot === undefined) {
-      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+    if (o == null) {
       return false
     }
 
+    if (o[t] == null) {
+      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+      return false
+    }
+    const ot = o[t]
+
+    if (ot[k] == null) {
+      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+      return false
+    }
     const otk = ot[k]
-    if (otk === undefined) {
-      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
-      return false
-    }
 
-    for (let cb of otk) cb(d)
+    for (let cb of otk) cb(data)
 
     return true
   }
@@ -53,24 +69,39 @@ class EventRouter {
     return copyObjectGraph(Events.get(this))
   }
 
-  purge(t) {
-    delete Events.get(this)[t]
-  }
-
-  remove(t, k, cb) {
+  purge(t: string) {
     const o = Events.get(this)
 
-    const ot = o[t]
-    if (ot === undefined) {
+    if (o == null) {
+      return false
+    }
+
+    if (o[t] == null) {
+      return false
+    }
+
+    delete o[t]
+    return true
+  }
+
+  remove(t: string, k: string, cb: Function) {
+    const o = Events.get(this)
+
+    if (o == null) {
+      return false
+    }
+
+    if (o[t] == null) {
       this.log(this.name, 'cannot find type', t)
       return false
     }
+    const ot = o[t]
 
-    const otk = ot[k]
-    if (otk === undefined) {
+    if (ot[k] == null) {
       this.log(this.name, 'cannot find key', k, 'in type', t)
       return false
     }
+    const otk = ot[k]
 
     if (!otk.includes(cb)) {
       this.log(this.name, 'cannot find this callback function under key', k, 'in type', t)
