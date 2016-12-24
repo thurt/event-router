@@ -1,6 +1,6 @@
 // @flow
 'use strict'
-const copyObjectGraph = require('copy-object-graph')
+const copyObjectGraph: Function = require('copy-object-graph')
 const Events: WeakMap<EventRouter, Object> = new WeakMap()
 
 class EventRouter {
@@ -14,7 +14,7 @@ class EventRouter {
     Events.set(this, Object.create(null)) // prevent adding Object.prototype
   }
 
-  add(t: string, k: string, cb: Function) {
+  add(t: string, k: string, cb: Function): boolean {
     const o = Events.get(this)
 
     if (o == null) {
@@ -41,7 +41,7 @@ class EventRouter {
     return true
   }
 
-  emit(t: string, k: string, data: any) {
+  emit(t: string, k: string, data: any): boolean {
     const o = Events.get(this)
 
     if (o == null) {
@@ -65,11 +65,11 @@ class EventRouter {
     return true
   }
 
-  getEvents() {
+  getEvents(): Object {
     return copyObjectGraph(Events.get(this))
   }
 
-  purge(t: string) {
+  purge(t: string): boolean {
     const o = Events.get(this)
 
     if (o == null) {
@@ -84,7 +84,7 @@ class EventRouter {
     return true
   }
 
-  remove(t: string, k: string, cb: Function) {
+  remove(t: string, k: string, cb: Function): boolean {
     const o = Events.get(this)
 
     if (o == null) {
