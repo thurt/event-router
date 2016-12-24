@@ -1,116 +1,91 @@
 'use strict'
 const copyObjectGraph = require('copy-object-graph')
-const myName = 'EventRouter'
 
-function EventRouter(shouldLogCalls) {
-  const events = Object.create(null) // prevent adding Object.prototype
+const Events = new WeakMap()
 
-  const public_interface = Object.assign(Object.create(null), { // prevent adding Object.prototype
-    getEvents() {
-      return copyObjectGraph(events)
-    },
+class EventRouter {
+  constructor(options) {
+    this.name = (options && options.name) || 'EventRouter'
+    this.log = (options && options.log) || () => {}
 
-    add(type, key, callback) {
-      return _add(type, key, callback, events)
-    },
-
-    remove(type, key, callback) {
-      return _remove(type, key, callback, events)
-    },
-
-    emit(type, key, data) {
-      return _emit(type, key, data, events)
-    },
-
-    purge(type) {
-      return _purge(type, events)
-    }
-  })
-
-  if (shouldLogCalls) { // add logging proxy
-    for (let method_name in public_interface) {
-      public_interface[method_name] = closure(method_name, public_interface[method_name])
-    }
-    console.info(myName, 'is logging calls')
+    Events.set(this, Object.create(null)) // prevent adding Object.prototype
   }
-  function closure(method_name, method) {
-    return function(...args) {
-      console.info(myName, method_name, args[0], args[1])
-      return method.apply(null, args)
+
+  add(t, k, cb) {
+    const o = Events.get(this)
+
+    let ot = o[t]
+    if (ot === undefined) ot = o[t] = Object.create(null)
+
+    let otk = ot[k]
+    if (otk === undefined) otk = ot[k] = []
+
+    if (otk.includes(cb)) {
+      this.log(this.name, 'event type', t, k, 'already has this callback function')
+      return false
+    } else {
+      this.log(this.name, 'add', t, k)
+      otk.push(cb)
+      return true
     }
   }
 
-  return Object.freeze(public_interface)
+  emit(t, k, d) {
+    const ot = Events.get(this)[t]
+
+    if (ot === undefined) {
+      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+      return false
+    }
+
+    const otk = ot[k]
+    if (otk === undefined) {
+      this.log(this.name, 'event type', t, k, 'was just fired but there are no registered callbacks')
+      return false
+    }
+
+    for (let cb of otk) cb(d)
+
+    return true
+  }
+
+  getEvents() {
+    return copyObjectGraph(Events.get(this))
+  }
+
+  purge(t) {
+    delete Events.get(this)[t]
+  }
+
+  remove(t, k, cb) {
+    const o = Events.get(this)
+
+    const ot = o[t]
+    if (ot === undefined) {
+      this.log(this.name, 'cannot find type', t)
+      return false
+    }
+
+    const otk = ot[k]
+    if (otk === undefined) {
+      this.log(this.name, 'cannot find key', k, 'in type', t)
+      return false
+    }
+
+    if (!otk.includes(cb)) {
+      this.log(this.name, 'cannot find this callback function under key', k, 'in type', t)
+      return false
+    }
+
+    otk.splice(otk.indexOf(cb), 1)
+
+    if (!otk.length) {
+      delete ot[k]
+      if (!Object.keys(ot).length) delete o[t]
+    }
+
+    return true
+  }
 }
 
 module.exports = EventRouter
-/////////////////////////////////////////////////////
-/*
-  t = type
-  k = key
-  d = data
-  o = object
-  cb = callback
-*/
-function _purge(t, o) {
-  delete o[t]
-}
-function _emit(t, k, d, o) {
-  const ot = o[t]
-  if (ot === undefined) {
-    console.warn(myName, 'event type', t, k, 'was just fired but there are no registered callbacks')
-    return false
-  }
-
-  const otk = ot[k]
-  if (otk === undefined) {
-    console.warn(myName, 'event type', t, k, 'was just fired but there are no registered callbacks')
-    return false
-  }
-
-  for (let cb of otk) cb(d)
-
-  return true
-}
-function _add(t, k, cb, o) {
-  let ot = o[t]
-  if (ot === undefined) ot = o[t] = {}
-
-  let otk = ot[k]
-  if (otk === undefined) otk = ot[k] = []
-
-  if (otk.includes(cb)) {
-    console.warn(myName, 'event type', t, k, 'already has this callback function')
-    return false
-  }
-  else otk.push(cb)
-
-  return true
-}
-function _remove(t, k, cb, o) {
-  const ot = o[t]
-  if (ot === undefined) {
-    console.warn(myName, 'cannot find type', t)
-    return false
-  }
-
-  const otk = ot[k]
-  if (otk === undefined) {
-    console.warn(myName, 'cannot find key', k, 'in type', t)
-    return false
-  }
-
-  if (!otk.includes(cb)) {
-    console.warn(myName, 'cannot find this callback function under key', k, 'in type', t)
-    return false
-  }
-
-  otk.splice(otk.indexOf(cb), 1)
-
-  if (!otk.length) {
-    delete ot[k]
-    if (!Object.keys(ot).length) delete o[t]
-  }
-
-  return true
-}

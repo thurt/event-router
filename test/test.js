@@ -1,39 +1,20 @@
 'use strict'
 const assert = require('assert')
+const sinon = require('sinon')
 const EventRouter = require('../EventRouter')
 const emptyFn = function() {}
 let myRouter
 
-context('Instantiate', () => {
-  let consoleVal = null
-  let cache = console.info
+context('Instantiate Options', () => {
+  describe('options.log', () => {
+    it('will be called whenever methods are invoked', () => {
+      const loggingFn = sinon.spy()
+      myRouter = new EventRouter({ log: loggingFn })
 
-  before('hijack console.info', () => {
-    console.info = function(...args) {
-      consoleVal = args.join(' ')
-    }
-  })
-  afterEach('reset consoleVal', () => {
-    consoleVal = null
-  })
-  after('restore console.info', () => {
-    console.info = cache
-  })
-
-  it('will log calls to console.info when instantiated with truthy value', () => {
-    myRouter = EventRouter(true)
-    assert.strictEqual(consoleVal, 'EventRouter is logging calls')
-
-    myRouter.add('test', 'key', emptyFn)
-    assert.strictEqual(consoleVal, 'EventRouter add test key')
-  })
-
-  it('will NOT log calls to console.info when instantiated with falsey value', () => {
-    myRouter = EventRouter(false)
-    assert.strictEqual(consoleVal, null, 'consoleVal in null after instantiating')
-
-    myRouter.add('test', 'key', emptyFn)
-    assert.strictEqual(consoleVal, null, 'consoleVal is still null after a method call')
+      myRouter.add('test', 'key', emptyFn) // calling a router method
+      assert(loggingFn.calledOnce)
+      assert(loggingFn.calledWith('EventRouter', 'add', 'test', 'key'))
+    })
   })
 })
 
@@ -42,7 +23,7 @@ context('Interface', () => {
     let myRouter
 
     before(() => {
-      myRouter = EventRouter()
+      myRouter = new EventRouter()
     })
 
     it('returns a deep copy of the internal events object (callback functions are not copied!)', () => {
@@ -79,7 +60,7 @@ context('Interface', () => {
 
   describe('.add(type, key, callback)', () => {
     before(() => {
-      myRouter = EventRouter()
+      myRouter = new EventRouter()
     })
 
     it('adds an event listener to the router and returns true', () => {
@@ -95,7 +76,7 @@ context('Interface', () => {
 
   describe('.remove(type, key, callback)', () => {
     before(() => {
-      myRouter = EventRouter()
+      myRouter = new EventRouter()
     })
 
     it('removes an event listener from the router and returns true', () => {
@@ -108,7 +89,7 @@ context('Interface', () => {
 
   describe('.emit(type, key, data)', () => {
     before(() => {
-      global.myRouter = EventRouter()
+      myRouter = new EventRouter()
     })
 
     it('invokes callbacks that are registered to this type and key and passes data as first parameter, and returns true', () => {
@@ -126,7 +107,7 @@ context('Interface', () => {
 
   describe('.purge(type)', () => {
     before(() => {
-      myRouter = EventRouter()
+      myRouter = new EventRouter()
     })
 
     it('removes all event references stored for this type', () => {
@@ -156,24 +137,16 @@ context('Interface', () => {
 })
 
 context('Warning Cases', () => {
-  let consoleVal = null
-  let cache = console.warn
+  let loggingFn
 
-  before('hijack console.warn', () => {
-    console.warn = function(...args) {
-      consoleVal = args.join(' ')
-    }
-  })
   beforeEach('re-instantiate EventRouter', () => {
-    myRouter = EventRouter()
-  })
-  after('restore console.warn', () => {
-    console.warn = cache
-    consoleVal = cache = null
+    loggingFn = sinon.spy()
+    myRouter = new EventRouter({ log: loggingFn })
   })
 
   it('returns false and logs a warning when attempting to #add the same callback function twice for the same type and key', () => {
     myRouter.add('test', 'test', emptyFn)
+    assert.strictEqual(loggingFn.callCount, 1)
     assert.deepStrictEqual(myRouter.getEvents(), {
       test: {
         test: [emptyFn]
@@ -181,49 +154,48 @@ context('Warning Cases', () => {
     }, 'the first add is successful')
 
     assert.strictEqual(myRouter.add('test', 'test', emptyFn), false, 'returns false')
+    assert.strictEqual(loggingFn.callCount, 2)
     assert.notDeepStrictEqual(myRouter.getEvents(), {
       test: {
         test: [emptyFn, emptyFn]
       }
     }, 'the second add attempt did not change the events object')
-
-    assert.strictEqual(consoleVal, 'EventRouter event type test test already has this callback function', 'a console warning is generated')
   })
 
-  it('returns false and logs a warning when attempting to #remove a callback function from an unknown type', () => {
+  it('returns false and calls log when attempting to #remove a callback function from an unknown type', () => {
     myRouter.add('type', 'test', emptyFn)
+    assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.remove('typo', 'test', emptyFn), false, 'returns false')
-
-    assert.strictEqual(consoleVal, 'EventRouter cannot find type typo', 'a console warning is generated')
+    assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and logs a warning when attempting to #remove a callback function from an unknown key', () => {
+  it('returns false and calls log when attempting to #remove a callback function from an unknown key', () => {
     myRouter.add('test', 'mess', emptyFn)
+    assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.remove('test', 'miss', emptyFn), false, 'returns false')
-
-    assert.strictEqual(consoleVal, 'EventRouter cannot find key miss in type test', 'a console warning is generated')
+    assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and logs a warning when attempting to #remove a callback function that is not found under the type and key', () => {
+  it('returns false and calls log when attempting to #remove a callback function that is not found under the type and key', () => {
     function blankFn() {}
     myRouter.add('test', 'me', emptyFn)
+    assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.remove('test', 'me', blankFn), false, 'returns false')
-
-    assert.strictEqual(consoleVal, 'EventRouter cannot find this callback function under key me in type test', 'a console warning is generated')
+    assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and logs a warning when attempting to #emit to an unknown type', () => {
+  it('returns false and calls log when attempting to #emit to an unknown type', () => {
     myRouter.add('test', 'me', emptyFn)
+    assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.emit('toast', 'me', ['some', 'data']), false, 'returns false')
-
-    assert.strictEqual(consoleVal, 'EventRouter event type toast me was just fired but there are no registered callbacks', 'a console warning is generated')
+    assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and logs a warning when attempting to #emit to an unknown key', () => {
+  it('returns false and calls log when attempting to #emit to an unknown key', () => {
     myRouter.add('test', 'me', emptyFn)
+    assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.emit('test', 'you', ['some', 'data']), false, 'returns false')
-
-    assert.strictEqual(consoleVal, 'EventRouter event type test you was just fired but there are no registered callbacks', 'a console warning is generated')
+    assert.strictEqual(loggingFn.callCount, 2)
   })
 
 })
