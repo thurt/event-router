@@ -1,118 +1,124 @@
 // @flow
 'use strict'
 const copyObjectGraph: Function = require('copy-object-graph')
-const Events: WeakMap<EventRouter, Object> = new WeakMap()
+
+type Stack = Array<Function>
+type Actions = {[action:string]: Stack}
+type Models = {[model:string]: Actions}
+const Routers: WeakMap<EventRouter, Models> = new WeakMap()
+
+type logFunction = (...strings: Array<string>) => void
+type callbackFunction = (data: any) => void
 
 class EventRouter {
   name: string
-  log: Function
-  constructor(options: { name?: string, log?: Function }) {
-    const emptyFn = function() {}
+  log: logFunction
+  constructor(options: { name?: string, log?: logFunction }) {
     this.name = (options && options.name) || 'EventRouter'
-    this.log = (options && options.log) || emptyFn
+    this.log = (options && options.log) || function(): void {}
 
-    Events.set(this, Object.create(null)) // prevent adding Object.prototype
+    Routers.set(this, Object.create(null)) // prevent adding Object.prototype
   }
 
-  add(model: string, action: string, cb: Function): boolean {
-    const o = Events.get(this)
+  add(model: string, action: string, cb: callbackFunction): boolean {
+    const models = Routers.get(this)
 
-    if (o == null) {
+    if (models == null) {
       return false
     }
 
-    if (o[model] == null) {
-      o[model] = Object.create(null)
+    if (models[model] == null) {
+      models[model] = Object.create(null)
     }
-    const om = o[model]
+    const actions: Actions = models[model]
 
-    if (om[action]== null) {
-      om[action] = []
+    if (actions[action] == null) {
+      actions[action] = []
     }
-    const oma = om[action]
+    const stack: Stack = actions[action]
 
-    if (oma.includes(cb)) {
+    if (stack.includes(cb)) {
       this.log(this.name, 'this callback is already subscribed to action', action, 'on model', model)
       return false
     }
 
     this.log(this.name, 'subscribing callback to action', action, 'on model', model)
-    oma.push(cb)
+    stack.push(cb)
     return true
   }
 
   emit(model: string, action: string, data: any): boolean {
-    const o = Events.get(this)
+    const models = Routers.get(this)
 
-    if (o == null) {
+    if (models == null) {
       return false
     }
 
-    if (o[model] == null) {
+    if (models[model] == null) {
       this.log(this.name, 'received request to emit action', action, 'on an unknown model', model)
       return false
     }
-    const om = o[model]
+    const actions: Actions = models[model]
 
-    if (om[action] == null) {
+    if (actions[action] == null) {
       this.log(this.name, 'received request to emit action', action, 'on model', model, 'but there are no subscribers')
       return false
     }
-    const oma = om[action]
+    const stack: Stack = actions[action]
 
-    for (let cb of oma) cb(data)
+    for (let cb of stack) cb(data)
 
     return true
   }
 
-  getEvents(): Object {
-    return copyObjectGraph(Events.get(this) || {})
+  getModels(): Models {
+    return copyObjectGraph(Routers.get(this))
   }
 
   purge(model: string): boolean {
-    const o = Events.get(this)
+    const models = Routers.get(this)
 
-    if (o == null) {
+    if (models == null) {
       return false
     }
 
-    if (o[model] == null) {
+    if (models[model] == null) {
       return false
     }
 
-    delete o[model]
+    delete models[model]
     return true
   }
 
-  remove(model: string, action: string, cb: Function): boolean {
-    const o = Events.get(this)
+  remove(model: string, action: string, cb: callbackFunction): boolean {
+    const models = Routers.get(this)
 
-    if (o == null) {
+    if (models == null) {
       return false
     }
 
-    if (o[model] == null) {
+    if (models[model] == null) {
       this.log(this.name, 'cannot remove unknown model', model)
       return false
     }
-    const om = o[model]
+    const actions: Actions = models[model]
 
-    if (om[action] == null) {
+    if (actions[action] == null) {
       this.log(this.name, 'cannot remove unknown action', action, 'on model', model)
       return false
     }
-    const oma = om[action]
+    const stack: Stack = actions[action]
 
-    if (!oma.includes(cb)) {
+    if (!stack.includes(cb)) {
       this.log(this.name, 'cannot remove unknown callback for action', action, 'on model', model)
       return false
     }
 
-    oma.splice(oma.indexOf(cb), 1)
+    stack.splice(stack.indexOf(cb), 1)
 
-    if (!oma.length) {
-      delete om[action]
-      if (!Object.keys(om).length) delete o[model]
+    if (!stack.length) {
+      delete actions[action]
+      if (!Object.keys(actions).length) delete models[model]
     }
 
     return true

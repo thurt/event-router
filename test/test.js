@@ -18,7 +18,7 @@ context('Instantiate Options', () => {
 })
 
 context('Interface', () => {
-  describe('.getEvents()', () => {
+  describe('.getModels()', () => {
     let myRouter
 
     before(() => {
@@ -26,7 +26,7 @@ context('Interface', () => {
     })
 
     it('returns a deep copy of the internal events object (callback functions are not copied!)', () => {
-      const events = myRouter.getEvents()
+      const events = myRouter.getModels()
       assert.strictEqual(typeof events, 'object', 'events() returns an object')
       assert.deepStrictEqual(events, {}, 'the events object is initially empty')
 
@@ -36,7 +36,7 @@ context('Interface', () => {
         myRouter.add(i, 'test', emptyFn)
       }
 
-      const events2 = myRouter.getEvents()
+      const events2 = myRouter.getModels()
       assert.notDeepStrictEqual(events, events2, 'the events object has changed after adding events')
       assert.deepStrictEqual(events2, {
         test: {
@@ -65,7 +65,7 @@ context('Interface', () => {
     it('adds an event listener to the router and returns true', () => {
       assert.strictEqual(myRouter.add('test', 'test', emptyFn), true, 'returns true')
 
-      assert.deepStrictEqual(myRouter.getEvents(), {
+      assert.deepStrictEqual(myRouter.getModels(), {
         test: {
           test: [emptyFn]
         }
@@ -82,7 +82,7 @@ context('Interface', () => {
       myRouter.add('test', 'test', emptyFn)
       assert.strictEqual(myRouter.remove('test', 'test', emptyFn), true, 'returns true')
 
-      assert.deepStrictEqual(myRouter.getEvents(), {}, 'the events object is empty after event is removed')
+      assert.deepStrictEqual(myRouter.getModels(), {}, 'the events object is empty after event is removed')
     })
   })
 
@@ -114,7 +114,7 @@ context('Interface', () => {
       myRouter.add('test', 'b', emptyFn)
       myRouter.add('test2', 'a', emptyFn)
 
-      assert.deepStrictEqual(myRouter.getEvents(), {
+      assert.deepStrictEqual(myRouter.getModels(), {
         test: {
           a: [emptyFn],
           b: [emptyFn]
@@ -126,7 +126,7 @@ context('Interface', () => {
 
       myRouter.purge('test')
 
-      assert.deepStrictEqual(myRouter.getEvents(), {
+      assert.deepStrictEqual(myRouter.getModels(), {
         test2: {
           a: [emptyFn]
         }
@@ -146,7 +146,7 @@ context('Warning Cases', () => {
   it('returns false and logs a warning when attempting to #add the same callback function twice for the same model action', () => {
     myRouter.add('test', 'test', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
-    assert.deepStrictEqual(myRouter.getEvents(), {
+    assert.deepStrictEqual(myRouter.getModels(), {
       test: {
         test: [emptyFn]
       }
@@ -154,7 +154,7 @@ context('Warning Cases', () => {
 
     assert.strictEqual(myRouter.add('test', 'test', emptyFn), false, 'returns false')
     assert.strictEqual(loggingFn.callCount, 2)
-    assert.notDeepStrictEqual(myRouter.getEvents(), {
+    assert.notDeepStrictEqual(myRouter.getModels(), {
       test: {
         test: [emptyFn, emptyFn]
       }
