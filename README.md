@@ -1,107 +1,32 @@
 A simple javascript event router.
 Add a callback to any custom event which is keyed by two strings.
 
-Here is an example showing some of the functionality:
-```javascript
-var myRouter = require('event-router')(true)
-/* interface:
-  myRouter.getSubscribers()
-  myRouter.add(string, string, callbackFunction)
-  myRouter.remove(string, string, callbackFunction)
-  myRouter.send(string, string, anyData)
-*/
-
-var myGreatDane = Dog('Woof! Woof!')
-var myPoodle = Dog('Arf! Arf!')
-var myBarkCounter = EventCounter('Dog', 'bark')
-
-myBarkCounter.startListening()
-////
-  myGreatDane.bark()
-  myPoodle.bark()
-  myGreatDane.bark()
-////
-myBarkCounter.stopListening()
-
-myPoodle.bark() // not counted
-myBarkCounter.getCounts()
-
-/* console output:
-  EventRouter: add Dog bark
-  EventRouter: send Dog bark
-  EventRouter: send Dog bark
-  EventRouter: send Dog bark
-  EventRouter: send Dog bark
-  EventRouter: event type Dog bark was just fired, but there are no registered callbacks.
-  EventCounter: {"Woof! Woof!":2,"Arf! Arf!":1}
-*/
-
-myRouter = myGreatDane = myPoodle = myBarkCounter = null
-////////////////////////////////////////////////////////////////
-
-function Dog(bark_str) {
-  return {
-    bark() {
-      myRouter.send('Dog', 'bark', bark_str) // SEND
-    }
-  }
-}
-
-function EventCounter(type, event) {
-  var counts = {}
-
-  function countType(data) {
-    counts[data] = counts[data] + 1 || 1
-  }
-
-  return {
-    getCounts() {
-      console.info('EventCounter:', JSON.stringify(counts))
-    },
-    startListening() {
-      myRouter.add(type, event, countType) // ADD
-    },
-    stopListening() {
-      myRouter.remove(type, event, countType) // REMOVE
-    }
-  }
-}
-```
-
 Test Documentation
 =======================
 
 # TOC
-   - [Instantiate](#instantiate)
+   - [Instantiate Options](#instantiate-options)
+     - [options.log](#instantiate-options-optionslog)
    - [Interface](#interface)
      - [.getEvents()](#interface-getevents)
-     - [.add(type, key, callback)](#interface-addtype-key-callback)
-     - [.remove(type, key, callback)](#interface-removetype-key-callback)
-     - [.emit(type, key, data)](#interface-emittype-key-data)
-     - [.purge(type)](#interface-purgetype)
+     - [.add(model, action, callback)](#interface-addmodel-action-callback)
+     - [.remove(model, action, callback)](#interface-removemodel-action-callback)
+     - [.emit(model, action, data)](#interface-emitmodel-action-data)
+     - [.purge(model)](#interface-purgemodel)
    - [Warning Cases](#warning-cases)
 <a name=""></a>
  
-<a name="instantiate"></a>
-# Instantiate
-will log calls to console.info when instantiated with truthy value.
+<a name="instantiate-options"></a>
+# Instantiate Options
+<a name="instantiate-options-optionslog"></a>
+## options.log
+will be called whenever methods are invoked.
 
 ```js
-var EventRouter = require('event-router')
-var myRouter = EventRouter(true)
-assert.strictEqual(consoleVal, 'EventRouter is logging calls')
-myRouter.add('test', 'key', emptyFn)
-assert.strictEqual(consoleVal, 'EventRouter add test key')
-```
-
-will NOT log calls to console.info when instantiated with falsey value.
-
-```js
-var EventRouter = require('event-router')
-var myRouter = EventRouter(false)
-assert.strictEqual(consoleVal, null, 'consoleVal in null after instantiating')
-myRouter.add('test', 'key', emptyFn)
-assert.strictEqual(consoleVal, null, 'consoleVal is still null after a method call')
+const loggingFn = sinon.spy()
+myRouter = new EventRouter({ log: loggingFn })
+myRouter.add('test', 'action', emptyFn) // calling a router method
+assert(loggingFn.calledOnce)
 ```
 
 <a name="interface"></a>
@@ -111,7 +36,7 @@ assert.strictEqual(consoleVal, null, 'consoleVal is still null after a method ca
 returns a deep copy of the internal events object (callback functions are not copied!).
 
 ```js
-var events = myRouter.getEvents()
+const events = myRouter.getEvents()
 assert.strictEqual(typeof events, 'object', 'events() returns an object')
 assert.deepStrictEqual(events, {}, 'the events object is initially empty')
 // fill myRouter with some events
@@ -119,7 +44,7 @@ for (let i = 0; i < 3; i++) {
   myRouter.add('test', i, emptyFn)
   myRouter.add(i, 'test', emptyFn)
 }
-var events2 = myRouter.getEvents()
+const events2 = myRouter.getEvents()
 assert.notDeepStrictEqual(events, events2, 'the events object has changed after adding events')
 assert.deepStrictEqual(events2, {
   test: {
@@ -139,8 +64,8 @@ assert.deepStrictEqual(events2, {
 }, 'the events object tree matches what was expected')
 ```
 
-<a name="interface-addtype-key-callback"></a>
-## .add(type, key, callback)
+<a name="interface-addmodel-action-callback"></a>
+## .add(model, action, callback)
 adds an event listener to the router and returns true.
 
 ```js
@@ -152,8 +77,8 @@ assert.deepStrictEqual(myRouter.getEvents(), {
 }, 'event was added to events object')
 ```
 
-<a name="interface-removetype-key-callback"></a>
-## .remove(type, key, callback)
+<a name="interface-removemodel-action-callback"></a>
+## .remove(model, action, callback)
 removes an event listener from the router and returns true.
 
 ```js
@@ -162,12 +87,12 @@ assert.strictEqual(myRouter.remove('test', 'test', emptyFn), true, 'returns true
 assert.deepStrictEqual(myRouter.getEvents(), {}, 'the events object is empty after event is removed')
 ```
 
-<a name="interface-emittype-key-data"></a>
-## .emit(type, key, data)
-invokes callbacks that are registered to this type and key and passes data as first parameter, and returns true.
+<a name="interface-emitmodel-action-data"></a>
+## .emit(model, action, data)
+invokes callbacks that are registered to this model action and passes data as first parameter, and returns true.
 
 ```js
-var outer_scope
+let outer_scope
 function simple_example(data) {
   outer_scope = data
 }
@@ -177,9 +102,9 @@ assert.strictEqual(myRouter.emit('test', 'test', 'hello world!'), true, 'returns
 assert.strictEqual(outer_scope, 'hello world!', 'value received in callback is same value that was emitted through EventRouter')
 ```
 
-<a name="interface-purgetype"></a>
-## .purge(type)
-removes all event references stored for this type.
+<a name="interface-purgemodel"></a>
+## .purge(model)
+removes all actions stored for this model.
 
 ```js
 myRouter.add('test', 'a', emptyFn)
@@ -199,67 +124,73 @@ assert.deepStrictEqual(myRouter.getEvents(), {
   test2: {
     a: [emptyFn]
   }
-}, 'events object was purged of everything under type test')
+}, 'events object was purged of everything under model named test')
 ```
 
 <a name="warning-cases"></a>
 # Warning Cases
-returns false and logs a warning when attempting to #add the same callback function twice for the same type and key.
+returns false and logs a warning when attempting to #add the same callback function twice for the same model action.
 
 ```js
 myRouter.add('test', 'test', emptyFn)
+assert.strictEqual(loggingFn.callCount, 1)
 assert.deepStrictEqual(myRouter.getEvents(), {
   test: {
     test: [emptyFn]
   }
 }, 'the first add is successful')
 assert.strictEqual(myRouter.add('test', 'test', emptyFn), false, 'returns false')
+assert.strictEqual(loggingFn.callCount, 2)
 assert.notDeepStrictEqual(myRouter.getEvents(), {
   test: {
     test: [emptyFn, emptyFn]
   }
 }, 'the second add attempt did not change the events object')
-assert.strictEqual(consoleVal, 'EventRouter event type test test already has this callback function', 'a console warning is generated')
 ```
 
-returns false and logs a warning when attempting to #remove a callback function from an unknown type.
+returns false and calls log when attempting to #remove a callback function from an unknown model.
 
 ```js
-myRouter.add('type', 'test', emptyFn)
-assert.strictEqual(myRouter.remove('typo', 'test', emptyFn), false, 'returns false')
-assert.strictEqual(consoleVal, 'EventRouter cannot find type typo', 'a console warning is generated')
+myRouter.add('model', 'action', emptyFn)
+assert.strictEqual(loggingFn.callCount, 1)
+assert.strictEqual(myRouter.remove('typo', 'action', emptyFn), false, 'returns false')
+assert.strictEqual(loggingFn.callCount, 2)
 ```
 
-returns false and logs a warning when attempting to #remove a callback function from an unknown key.
+returns false and calls log when attempting to #remove a callback function from an unknown action on a known model.
 
 ```js
 myRouter.add('test', 'mess', emptyFn)
+assert.strictEqual(loggingFn.callCount, 1)
 assert.strictEqual(myRouter.remove('test', 'miss', emptyFn), false, 'returns false')
-assert.strictEqual(consoleVal, 'EventRouter cannot find key miss in type test', 'a console warning is generated')
+assert.strictEqual(loggingFn.callCount, 2)
 ```
 
-returns false and logs a warning when attempting to #remove a callback function that is not found under the type and key.
+returns false and calls log when attempting to #remove an unknown callback function for a known model action.
 
 ```js
 function blankFn() {}
 myRouter.add('test', 'me', emptyFn)
+assert.strictEqual(loggingFn.callCount, 1)
 assert.strictEqual(myRouter.remove('test', 'me', blankFn), false, 'returns false')
-assert.strictEqual(consoleVal, 'EventRouter cannot find this callback function under key me in type test', 'a console warning is generated')
+assert.strictEqual(loggingFn.callCount, 2)
 ```
 
-returns false and logs a warning when attempting to #emit to an unknown type.
+returns false and calls log when attempting to #emit on an unknown model.
 
 ```js
 myRouter.add('test', 'me', emptyFn)
+assert.strictEqual(loggingFn.callCount, 1)
 assert.strictEqual(myRouter.emit('toast', 'me', ['some', 'data']), false, 'returns false')
-assert.strictEqual(consoleVal, 'EventRouter event type toast me was just fired but there are no registered callbacks', 'a console warning is generated')
+assert.strictEqual(loggingFn.callCount, 2)
 ```
 
-returns false and logs a warning when attempting to #emit to an unknown key.
+returns false and calls log when attempting to #emit to an unknown action.
 
 ```js
 myRouter.add('test', 'me', emptyFn)
+assert.strictEqual(loggingFn.callCount, 1)
 assert.strictEqual(myRouter.emit('test', 'you', ['some', 'data']), false, 'returns false')
-assert.strictEqual(consoleVal, 'EventRouter event type test you was just fired but there are no registered callbacks', 'a console warning is generated')
+assert.strictEqual(loggingFn.callCount, 2)
 ```
 

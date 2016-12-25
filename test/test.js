@@ -1,7 +1,7 @@
 'use strict'
 const assert = require('assert')
 const sinon = require('sinon')
-const EventRouter = require('../EventRouter')
+const EventRouter = require('../')
 const emptyFn = function() {}
 let myRouter
 
@@ -11,9 +11,8 @@ context('Instantiate Options', () => {
       const loggingFn = sinon.spy()
       myRouter = new EventRouter({ log: loggingFn })
 
-      myRouter.add('test', 'key', emptyFn) // calling a router method
+      myRouter.add('test', 'action', emptyFn) // calling a router method
       assert(loggingFn.calledOnce)
-      assert(loggingFn.calledWith('EventRouter', 'add', 'test', 'key'))
     })
   })
 })
@@ -58,7 +57,7 @@ context('Interface', () => {
     })
   })
 
-  describe('.add(type, key, callback)', () => {
+  describe('.add(model, action, callback)', () => {
     before(() => {
       myRouter = new EventRouter()
     })
@@ -74,7 +73,7 @@ context('Interface', () => {
     })
   })
 
-  describe('.remove(type, key, callback)', () => {
+  describe('.remove(model, action, callback)', () => {
     before(() => {
       myRouter = new EventRouter()
     })
@@ -87,12 +86,12 @@ context('Interface', () => {
     })
   })
 
-  describe('.emit(type, key, data)', () => {
+  describe('.emit(model, action, data)', () => {
     before(() => {
       myRouter = new EventRouter()
     })
 
-    it('invokes callbacks that are registered to this type and key and passes data as first parameter, and returns true', () => {
+    it('invokes callbacks that are registered to this model action and passes data as first parameter, and returns true', () => {
       let outer_scope
       function simple_example(data) {
         outer_scope = data
@@ -105,12 +104,12 @@ context('Interface', () => {
     })
   })
 
-  describe('.purge(type)', () => {
+  describe('.purge(model)', () => {
     before(() => {
       myRouter = new EventRouter()
     })
 
-    it('removes all event references stored for this type', () => {
+    it('removes all actions stored for this model', () => {
       myRouter.add('test', 'a', emptyFn)
       myRouter.add('test', 'b', emptyFn)
       myRouter.add('test2', 'a', emptyFn)
@@ -131,7 +130,7 @@ context('Interface', () => {
         test2: {
           a: [emptyFn]
         }
-      }, 'events object was purged of everything under type test')
+      }, 'events object was purged of everything under model named test')
     })
   })
 })
@@ -144,7 +143,7 @@ context('Warning Cases', () => {
     myRouter = new EventRouter({ log: loggingFn })
   })
 
-  it('returns false and logs a warning when attempting to #add the same callback function twice for the same type and key', () => {
+  it('returns false and logs a warning when attempting to #add the same callback function twice for the same model action', () => {
     myRouter.add('test', 'test', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
     assert.deepStrictEqual(myRouter.getEvents(), {
@@ -162,21 +161,21 @@ context('Warning Cases', () => {
     }, 'the second add attempt did not change the events object')
   })
 
-  it('returns false and calls log when attempting to #remove a callback function from an unknown type', () => {
-    myRouter.add('type', 'test', emptyFn)
+  it('returns false and calls log when attempting to #remove a callback function from an unknown model', () => {
+    myRouter.add('model', 'action', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
-    assert.strictEqual(myRouter.remove('typo', 'test', emptyFn), false, 'returns false')
+    assert.strictEqual(myRouter.remove('typo', 'action', emptyFn), false, 'returns false')
     assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and calls log when attempting to #remove a callback function from an unknown key', () => {
+  it('returns false and calls log when attempting to #remove a callback function from an unknown action on a known model', () => {
     myRouter.add('test', 'mess', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.remove('test', 'miss', emptyFn), false, 'returns false')
     assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and calls log when attempting to #remove a callback function that is not found under the type and key', () => {
+  it('returns false and calls log when attempting to #remove an unknown callback function for a known model action', () => {
     function blankFn() {}
     myRouter.add('test', 'me', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
@@ -184,14 +183,14 @@ context('Warning Cases', () => {
     assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and calls log when attempting to #emit to an unknown type', () => {
+  it('returns false and calls log when attempting to #emit on an unknown model', () => {
     myRouter.add('test', 'me', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.emit('toast', 'me', ['some', 'data']), false, 'returns false')
     assert.strictEqual(loggingFn.callCount, 2)
   })
 
-  it('returns false and calls log when attempting to #emit to an unknown key', () => {
+  it('returns false and calls log when attempting to #emit to an unknown action', () => {
     myRouter.add('test', 'me', emptyFn)
     assert.strictEqual(loggingFn.callCount, 1)
     assert.strictEqual(myRouter.emit('test', 'you', ['some', 'data']), false, 'returns false')
