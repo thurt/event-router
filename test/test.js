@@ -1,7 +1,7 @@
-'use strict'
-const assert = require('assert')
-const sinon = require('sinon')
-const EventRouter = require('../')
+import assert from 'assert'
+import sinon from 'sinon'
+import EventRouter from '../'
+
 const emptyFn = function() {}
 let myRouter
 

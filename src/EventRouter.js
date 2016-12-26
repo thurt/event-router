@@ -1,6 +1,5 @@
 // @flow
-'use strict'
-const copyObjectGraph: Function = require('copy-object-graph')
+import copyObjectGraph from 'copy-object-graph'
 
 type Stack = Array<Function>
 type Actions = {[action:string]: Stack}
@@ -11,7 +10,7 @@ type MaybeModels = void | Models
 type logFunction = (...strings: Array<string>) => void
 type callbackFunction = (data: any) => void
 
-class EventRouter {
+export default class EventRouter {
   name: string
   log: logFunction
   constructor(options: { name?: string, log?: logFunction }): void {
@@ -126,5 +125,3 @@ class EventRouter {
     return true
   }
 }
-
-module.exports = EventRouter
