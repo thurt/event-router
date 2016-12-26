@@ -6,6 +6,7 @@ type Stack = Array<Function>
 type Actions = {[action:string]: Stack}
 type Models = {[model:string]: Actions}
 const Routers: WeakMap<EventRouter, Models> = new WeakMap()
+type MaybeModels = void | Models
 
 type logFunction = (...strings: Array<string>) => void
 type callbackFunction = (data: any) => void
@@ -13,7 +14,7 @@ type callbackFunction = (data: any) => void
 class EventRouter {
   name: string
   log: logFunction
-  constructor(options: { name?: string, log?: logFunction }) {
+  constructor(options: { name?: string, log?: logFunction }): void {
     this.name = (options && options.name) || 'EventRouter'
     this.log = (options && options.log) || function(): void {}
 
@@ -21,7 +22,7 @@ class EventRouter {
   }
 
   add(model: string, action: string, cb: callbackFunction): boolean {
-    const models = Routers.get(this)
+    const models: MaybeModels = Routers.get(this)
 
     if (models == null) {
       return false
@@ -47,8 +48,8 @@ class EventRouter {
     return true
   }
 
-  emit(model: string, action: string, data: any): boolean {
-    const models = Routers.get(this)
+  emit(model: string, action: string, data: mixed): boolean {
+    const models: MaybeModels = Routers.get(this)
 
     if (models == null) {
       return false
@@ -66,17 +67,18 @@ class EventRouter {
     }
     const stack: Stack = actions[action]
 
-    for (let cb of stack) cb(data)
+    for (let cb: Function of stack) cb(data)
 
     return true
   }
 
-  getModels(): Models {
-    return copyObjectGraph(Routers.get(this))
+  getModels(): MaybeModels {
+    const models: MaybeModels = Routers.get(this)
+    return copyObjectGraph(models)
   }
 
   purge(model: string): boolean {
-    const models = Routers.get(this)
+    const models: MaybeModels = Routers.get(this)
 
     if (models == null) {
       return false
@@ -91,7 +93,7 @@ class EventRouter {
   }
 
   remove(model: string, action: string, cb: callbackFunction): boolean {
-    const models = Routers.get(this)
+    const models: MaybeModels = Routers.get(this)
 
     if (models == null) {
       return false
