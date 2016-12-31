@@ -11,7 +11,16 @@ var _copyObjectGraph2 = _interopRequireDefault(_copyObjectGraph);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const Routers = new WeakMap();
+
+
+/**
+ * The EventRouter Class
+ */
 class EventRouter {
+
+  /**
+   * Creates a new EventRouter
+   */
   constructor(options) {
     this.name = options && options.name || 'EventRouter';
     this.log = options && options.log || function () {};
@@ -19,6 +28,9 @@ class EventRouter {
     Routers.set(this, Object.create(null)); // prevent adding Object.prototype
   }
 
+  /**
+   * Adds callback to model/action
+   */
   add(model, action, cb) {
     const models = Routers.get(this);
 
@@ -46,6 +58,9 @@ class EventRouter {
     return true;
   }
 
+  /**
+   * Emits data to all callbacks on the model/action
+   */
   emit(model, action, data) {
     const models = Routers.get(this);
 
@@ -70,11 +85,17 @@ class EventRouter {
     return true;
   }
 
+  /**
+   * Get all models
+   */
   getModels() {
     const models = Routers.get(this);
     return (0, _copyObjectGraph2.default)(models);
   }
 
+  /**
+   * Remove model and all its actions and callbacks
+   */
   purge(model) {
     const models = Routers.get(this);
 
@@ -90,6 +111,9 @@ class EventRouter {
     return true;
   }
 
+  /**
+   * Remove callback from a model/action
+   */
   remove(model, action, cb) {
     const models = Routers.get(this);
 

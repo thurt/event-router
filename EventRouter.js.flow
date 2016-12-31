@@ -10,9 +10,16 @@ type MaybeModels = void | Models
 type logFunction = (...strings: Array<string>) => void
 type callbackFunction = (data: any) => void
 
+/**
+ * The EventRouter Class
+ */
 export default class EventRouter {
   name: string
   log: logFunction
+
+  /**
+   * Creates a new EventRouter
+   */
   constructor(options: { name?: string, log?: logFunction }): void {
     this.name = (options && options.name) || 'EventRouter'
     this.log = (options && options.log) || function(): void {}
@@ -20,6 +27,9 @@ export default class EventRouter {
     Routers.set(this, Object.create(null)) // prevent adding Object.prototype
   }
 
+  /**
+   * Adds callback to model/action
+   */
   add(model: string, action: string, cb: callbackFunction): boolean {
     const models: MaybeModels = Routers.get(this)
 
@@ -47,6 +57,9 @@ export default class EventRouter {
     return true
   }
 
+  /**
+   * Emits data to all callbacks on the model/action
+   */
   emit(model: string, action: string, data: mixed): boolean {
     const models: MaybeModels = Routers.get(this)
 
@@ -71,11 +84,17 @@ export default class EventRouter {
     return true
   }
 
+  /**
+   * Get all models
+   */
   getModels(): MaybeModels {
     const models: MaybeModels = Routers.get(this)
     return copyObjectGraph(models)
   }
 
+  /**
+   * Remove model and all its actions and callbacks
+   */
   purge(model: string): boolean {
     const models: MaybeModels = Routers.get(this)
 
@@ -91,6 +110,9 @@ export default class EventRouter {
     return true
   }
 
+  /**
+   * Remove callback from a model/action
+   */
   remove(model: string, action: string, cb: callbackFunction): boolean {
     const models: MaybeModels = Routers.get(this)
 
