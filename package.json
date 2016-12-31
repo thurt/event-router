@@ -1,6 +1,6 @@
 {
   "name": "event-router",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A simple javascript event router",
   "main": "EventRouter.js",
   "scripts": {
