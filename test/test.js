@@ -1,3 +1,5 @@
+// @flow
+import { describe as context, describe, it, before, beforeEach } from 'mocha'
 import assert from 'assert'
 import sinon from 'sinon'
 import EventRouter from '../'
@@ -22,7 +24,7 @@ context('Interface', () => {
     let myRouter
 
     before(() => {
-      myRouter = new EventRouter()
+      myRouter = new EventRouter({})
     })
 
     it('returns a deep copy of the internal events object (callback functions are not copied!)', () => {
@@ -32,25 +34,25 @@ context('Interface', () => {
 
       // fill myRouter with some events
       for (let i = 0; i < 3; i++) {
-        myRouter.add('test', i, emptyFn)
-        myRouter.add(i, 'test', emptyFn)
+        myRouter.add('test', String(i), emptyFn)
+        myRouter.add(String(i), 'test', emptyFn)
       }
 
       const events2 = myRouter.getModels()
       assert.notDeepStrictEqual(events, events2, 'the events object has changed after adding events')
       assert.deepStrictEqual(events2, {
         test: {
-          0: [emptyFn],
-          1: [emptyFn],
-          2: [emptyFn]
+          "0": [emptyFn],
+          "1": [emptyFn],
+          "2": [emptyFn]
         },
-        0: {
+        "0": {
           test: [emptyFn]
         },
-        1: {
+        "1": {
           test: [emptyFn]
         },
-        2: {
+        "2": {
           test: [emptyFn]
         }
       }, 'the events object tree matches what was expected')
@@ -59,7 +61,7 @@ context('Interface', () => {
 
   describe('.add(model, action, callback)', () => {
     before(() => {
-      myRouter = new EventRouter()
+      myRouter = new EventRouter({})
     })
 
     it('adds an event listener to the router and returns true', () => {
@@ -75,7 +77,7 @@ context('Interface', () => {
 
   describe('.remove(model, action, callback)', () => {
     before(() => {
-      myRouter = new EventRouter()
+      myRouter = new EventRouter({})
     })
 
     it('removes an event listener from the router and returns true', () => {
@@ -88,7 +90,7 @@ context('Interface', () => {
 
   describe('.emit(model, action, data)', () => {
     before(() => {
-      myRouter = new EventRouter()
+      myRouter = new EventRouter({})
     })
 
     it('invokes callbacks that are registered to this model action and passes data as first parameter, and returns true', () => {
@@ -106,7 +108,7 @@ context('Interface', () => {
 
   describe('.purge(model)', () => {
     before(() => {
-      myRouter = new EventRouter()
+      myRouter = new EventRouter({})
     })
 
     it('removes all actions stored for this model', () => {

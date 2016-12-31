@@ -1,3 +1,5 @@
+[include]
 
 [ignore]
-.*/test/.*
+
+[libs]
